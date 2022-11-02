@@ -2,9 +2,27 @@ import util, random, sys, pickle, collections, operator, itertools, time, math, 
 from collections import defaultdict
 import numpy as np
 
+# changes by M. Galardini, 2022/11/02
+from Bio import SeqIO
+import argparse
+import pandas as pd
+#
+
 # k and BETA for La Fleur dataset
 LOGK   = -2.80271176
 BETA    = 0.81632623
+
+# changes by M. Galardini, 2022/11/02
+def get_args():
+    description = 'Predict promoter strength from sequence'
+    parser = argparse.ArgumentParser(description=description)
+
+    parser.add_argument('sequences',
+                        help='Input sequences in fasta format')
+    parser.add_argument('output',
+                        help='Output table (add ".gz") to have it compressed')
+    return parser.parse_args()
+#
 
 def unpickler(infile):
     with open(infile, 'rb') as handle:
@@ -66,7 +84,7 @@ def scan_arbitrary(inputSequence, two_mer_encoder, three_mer_encoder, model, int
                     # seq_query[(float(dG_bind), float(dG_total), TSS_distance)] = ((tempUP, temp35, tempspacer, temp10, tempdisc, tempITR),(dg10, dg35, dg_disc, dg_ITR, dg_ext10, dg_spacer, dg_UP))
                     seq_query[(float(dG_total), float(dG_apparent), TSS_distance)] = ((tempUP, temp35, tempspacer, temp10, tempdisc, tempITR),(dg10, dg35, dg_disc, dg_ITR, dg_ext10, dg_spacer, dg_UP))
 
-    print "best: ", min(seq_query.items(), key=operator.itemgetter(0))
+    print("best: ", min(seq_query.items(), key=operator.itemgetter(0)))
 
     best = (collections.OrderedDict(sorted(seq_query.items())), min(seq_query.items(), key=operator.itemgetter(0)))
     return best, seq_query
@@ -299,15 +317,43 @@ class Promoter_Calculator(object):
 if __name__ == "__main__":
 
     begin = time.time()
-    sequence = "".join([random.choice(['A','G','C','T']) for x in range(1000)])
     calc = Promoter_Calculator()
-    calc.run(sequence, TSS_range = [0, len(sequence)])
-    output = calc.output()
-    for (TSS, result) in output['Forward_Predictions_per_TSS'].items():
-        print "Fwd TSS: %s. TX Rate: %s. Calcs: %s" % (TSS, result['Tx_rate'], str(result) )
-    for (TSS, result) in output['Reverse_Predictions_per_TSS'].items():
-        print "Rev TSS: %s. TX Rate: %s. Calcs: %s" % (TSS, result['Tx_rate'], str(result) )
 
-    print "Elapsed Time: ", time.time() - begin, " seconds."
+    # changes by M. Galardini, 2022/11/02
+    args = get_args()
+    res = []
+    for s in SeqIO.parse(args.sequences, 'fasta'):
+        sequence = str(s.seq)
+        strain, chrom, pos = s.id.split(':')
+        start, end = [int(x) for x in pos.split('-')]
+        calc.run(sequence, TSS_range = [0, len(sequence)])
+        output = calc.output()
+        for (TSS, result) in output['Forward_Predictions_per_TSS'].items():
+            region_start = result['UP_position'][0]
+            region_end = result['TSS'] + len(result['ITR'])
+            r = pd.Series(result)
+            r['strain'] = strain
+            r['chrom'] = chrom
+            r['start'] = start + region_start
+            r['end'] = start + region_end
+            r['strand'] = '+'
+            res.append(r.to_frame().T)
+        for (TSS, result) in output['Reverse_Predictions_per_TSS'].items():
+            region_start = result['UP_position'][0]
+            region_end = result['TSS'] + len(result['ITR'])
+            r = pd.Series(result)
+            r['strain'] = strain
+            r['chrom'] = chrom
+            r['start'] = end - region_end
+            r['end'] = end - region_start
+            r['strand'] = '-'
+            res.append(r.to_frame().T)
+        sys.stderr.write(f"Strain {strain}, elapsed time: {time.time() - begin} seconds\n")
 
+    r = pd.concat(res)
+    start_cols = ['strain', 'chrom', 'start', 'end', 'strand', 'TSS', 'Tx_rate']
+    r = r[start_cols + sorted(r.columns.difference(start_cols))]
+    r.to_csv(args.output, sep='\t', index=False)
+    sys.stderr.write(f"Finished! Elapsed time: {time.time() - begin} seconds\n")
+    #
 
