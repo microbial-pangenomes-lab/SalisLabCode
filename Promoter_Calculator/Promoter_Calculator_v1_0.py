@@ -324,7 +324,7 @@ if __name__ == "__main__":
     res = []
     for s in SeqIO.parse(args.sequences, 'fasta'):
         sequence = str(s.seq)
-        strain, chrom, pos = s.id.split(':')
+        strain, chrom, pos, gene_id = s.id.split(':')
         start, end = [int(x) for x in pos.split('-')]
         calc.run(sequence, TSS_range = [0, len(sequence)])
         output = calc.output()
@@ -334,6 +334,7 @@ if __name__ == "__main__":
             r = pd.Series(result)
             r['strain'] = strain
             r['chrom'] = chrom
+            r['gene_id'] = gene_id
             r['start'] = start + region_start
             r['end'] = start + region_end
             r['strand'] = '+'
@@ -344,6 +345,7 @@ if __name__ == "__main__":
             r = pd.Series(result)
             r['strain'] = strain
             r['chrom'] = chrom
+            r['gene_id'] = gene_id
             r['start'] = end - region_end
             r['end'] = end - region_start
             r['strand'] = '-'
@@ -351,7 +353,7 @@ if __name__ == "__main__":
         sys.stderr.write(f"Strain {strain}, elapsed time: {time.time() - begin} seconds\n")
 
     r = pd.concat(res)
-    start_cols = ['strain', 'chrom', 'start', 'end', 'strand', 'TSS', 'Tx_rate']
+    start_cols = ['strain', 'chrom', 'gene_id', 'start', 'end', 'strand', 'TSS', 'Tx_rate']
     r = r[start_cols + sorted(r.columns.difference(start_cols))]
     r.to_csv(args.output, sep='\t', index=False)
     sys.stderr.write(f"Finished! Elapsed time: {time.time() - begin} seconds\n")
