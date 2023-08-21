@@ -135,8 +135,8 @@ def calc_stacking_and_twist_energy(seq):
     spacer_twist = 0
     for j in range(0,len(seq)-1,2):
         mer = seq[j:j+2]
-        spacer_sfe += stacking_dict[mer]
-        spacer_twist += average_twist[mer]
+        spacer_sfe += stacking_dict.get(mer, np.nan)
+        spacer_twist += average_twist.get(mer, np.nan)
         # try forward and reverse or compliment
         ## try:
         ##     spacer_sfe += stacking_dict[mer]
@@ -154,7 +154,7 @@ def calc_rigidity(seq):
     rigidity = 0
     for m in range(0, len(seq), 2):
         mer = seq[m:m+2]
-        rigidity += persistence[mer]
+        rigidity += persistence.get(mer, np.nan)
         ## try:
         ##     rigidity += persistence[mer]
         ## except:
@@ -169,7 +169,7 @@ def calc_disc_melting(seq, downstream):
         mer = seq[j:j+2]
         if len(mer) < 2:    mer = mer + downstream[0]
         if mer in DNA_DNA_hybrids:  dg_dna += DNA_DNA_hybrids[mer]
-        dg_dna += DNA_DNA_hybrids[mer]
+        dg_dna += DNA_DNA_hybrids.get(mer, np.nan)
         ## try:
         ##     dg_dna += DNA_DNA_hybrids[mer]
         ## except:
@@ -183,13 +183,13 @@ def calc_DNA_RNA_hybrid_energy(seq):
     dg_rna = 0
     for j in range(0,len(seq[0:15])-1,2): # 15 is the length of long abortive transcripts
         mer = seq[j:j+2]
-        dg_dna += DNA_DNA_hybrids[mer]
+        dg_dna += DNA_DNA_hybrids.get(mer, np.nan)
         # try forward and reverse or compliment
         ## try:
         ##     dg_dna += DNA_DNA_hybrids[mer]
         ## except:
         ##    dg_dna += DNA_DNA_hybrids[reverse_complement(mer)]
-        dg_rna += RNA_DNA_hybrids[mer]
+        dg_rna += RNA_DNA_hybrids.get(mer, np.nan)
 
     dg_hybrid    = dg_dna - dg_rna
     return dg_dna,dg_rna,dg_hybrid
@@ -198,7 +198,7 @@ def calc_groove_width(seq):
     groove_width = 0
     for l in range(0, len(seq), 2):
         mer1 = seq[l:l+2]
-        groove_width += groove_access[mer1]
+        groove_width += groove_access.get(mer1, np.nan)
         ## try:
         ##    groove_width+= groove_access[mer1]
         ## except:
