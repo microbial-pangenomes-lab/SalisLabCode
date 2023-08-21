@@ -31,7 +31,7 @@ def unpickler(infile):
 
 def _revcomp(seq):
     revcomp = {'U' : 'A', 'A' : 'T', 'G' : 'C', 'T' : 'A', 'C' : 'G'}
-    return "".join([revcomp[letter] for letter in seq[::-1] ])
+    return "".join([revcomp.get(letter, 'N') for letter in seq[::-1] ])
 
 def get_matrices(two_mer_encoder, three_mer_encoder, spacer_encoder, coeffs):
 
