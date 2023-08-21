@@ -324,6 +324,8 @@ if __name__ == "__main__":
     res = []
     for s in SeqIO.parse(args.sequences, 'fasta'):
         sequence = str(s.seq)
+        if 'N' in sequence:
+            sys.stderr.write(f"Skipping sequence {s.id} because it has at least one N character")
         strain, chrom, pos, gene_id = s.id.split(':')
         start, end = [int(x) for x in pos.split('-')]
         calc.run(sequence, TSS_range = [0, len(sequence)])
